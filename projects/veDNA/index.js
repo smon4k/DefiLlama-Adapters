@@ -1,27 +1,28 @@
 const sdk = require("@defillama/sdk");
-const { transformBscAddress } = require('../helper/portedTokens');
-const MINT_TOKEN_CONTRACT = '0x1f3Af095CDa17d63cad238358837321e95FC5915';
-const MINT_CLUB_BOND_CONTRACT = '0x8BBac0C7583Cc146244a18863E708bFFbbF19975';
+const utils = require('../helper/utils');
+const USDC = "fantom:0x04068DA6C83AFCFA0e13ba15A6696662335D5B75";
+async function getPlatformData() {
+    const response = await utils.fetchURL('https://api.vedna.finance/api/Vedna/getVeDNACountTvl');
+    return response.data.data;
+}
 
-async function tvl(timestamp, block, chainBlocks) {
-  const balances = {};
-  const transform = await transformBscAddress();
-
-  const collateralBalance = (await sdk.api.abi.call({
-    abi: 'erc20:balanceOf',
-    chain: 'bsc',
-    target: MINT_TOKEN_CONTRACT,
-    params: [MINT_CLUB_BOND_CONTRACT],
-    block: chainBlocks['bsc'],
-  })).output;
-//   console.log(collateralBalance);
-  await sdk.util.sumSingleBalance(balances, transform(MINT_TOKEN_CONTRACT), collateralBalance)
-
-  return balances;
+async function tvl() {
+    const data = await getPlatformData();
+    let total = 0;
+    for (key in data) {
+        for(keys in data[key]) {
+            if(data[key][keys] && data[key][keys] > 0) {
+                total += data[key][keys];
+            }
+        }
+    }
+    let balances = {};
+    balances[USDC] = (Number(total)*1e6).toFixed(0);
+    return balances;
 }
 
 module.exports = {
-  bsc: {
+  ftm: {
     tvl,
   }
 }; 
